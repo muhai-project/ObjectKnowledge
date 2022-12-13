@@ -103,6 +103,12 @@ classes:
         owl: "muhai:hasPersistentId"
         range: symbol
         max: 1
+        ispersistentid: true
+      id:
+        owl: "muhai:hasId"
+        range: symbol
+        max: 1
+        isid: true
   conceptualizable:
     documentation: "An object that can be used to stand for its class as a whole."
     superclasses:
@@ -185,6 +191,17 @@ classes:
       - container
     python: false
     owl: false
+    properties:
+      arrangement:
+        replacenullby: sectionalized # inherited from superclass, no need to specify more
+      contents:
+        musthave:
+          - kitchen-cabinet
+          - pantry
+          - fridge
+          - freezer
+          - oven
+          - counter-top
     dataproperties:
       kitchen-time:
         range: integer

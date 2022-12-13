@@ -57,6 +57,8 @@ def _getSpecification(classSpecs, className, propName, propSpec):
     shared = propSpec.get('shared', False)
     initarg = propSpec.get('initarg', propName)
     initformYaml = propSpec.get('default', False)
+    isPersistentID = propSpec.get('ispersistentid', False)
+    isID = propSpec.get('isid', False)
     initform = "nil"
     if initformYaml is True:
         initform = 'T'
@@ -68,7 +70,7 @@ def _getSpecification(classSpecs, className, propName, propSpec):
         typeStr = typeStrSuperclass
     if maximum is None:
         maximum = maximumSuperclass
-    return reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove
+    return reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, isPersistentID, isID
     
 def _makeAccessor(reader, writer):
     accessW = ""
@@ -92,7 +94,7 @@ def _makeTypeSpec(typeStr, maximum):
     return ("(list %s)" % typeStr)
     
 def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove = _getSpecification(classSpecs, className, propName, propSpec)
+    reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
     if declaredAbove:
         if "default" in propSpec:
             if 1 == maximum:
@@ -109,7 +111,7 @@ def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
     return "  (%s %s\n      :initarg %s\n      %s\n      :initform (make-instance '%s))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
     
 def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove = _getSpecification(classSpecs, className, propName, propSpec)
+    reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
     if declaredAbove:
         if "default" in propSpec:
             return "  (%s :initform %s)\n" % (propName, initform)
@@ -117,7 +119,11 @@ def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
     return "  (%s %s\n      :initarg %s\n      %s\n      :initform %s)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
 
 def copyLispPropertyCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, _, _, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
+    reader, writer, maximum, shared, _, _, _, _, isPersistentID, isID = _getSpecification(classSpecs, className, propName, propSpec)
+    if isPersistentID:
+        return "  (setf (%s copy) (%s original))\n" % (writer, reader)
+    elif isID:
+        return "  (setf (%s copy) (make-id (%s original)))\n" % (writer, reader)
     origValues = "(%s original)" % reader
     if not shared:
         origValues = "(copy-object %s)" % origValues
@@ -129,7 +135,7 @@ def copyLispPropertyCode(classSpecs, className, propName, propSpec):
     return "  (setf (%s copy) %s)\n" % (writer, origValues)
 
 def copyLispDataPropertyCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, _, _, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
+    reader, writer, maximum, shared, _, _, _, _, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
     origValues = "(%s original)" % reader
     if 1 != maximum:
         origValues = "(loop for item in %s collect item)" % origValues
@@ -151,6 +157,35 @@ def generateClassCode(classSpecs, className):
     for k in sorted(lispPropertiesDic.keys()):
         lispProperties = lispProperties + propertyLispDeclarationCode(classSpecs, className, k, lispPropertiesDic[k])
     lispClassDef = "(defclass %s (%s)\n  (%s)\n  (:documentation \"%s\"))\n\n" % (className, lispSuperclasses, lispProperties[2:-1], docString)
+    lispIniAfterMethodDef = ""
+    innerString = ""
+    for k in lispPropertiesDic.keys():
+        if lispPropertiesDic[k].get("replacenullby", False):
+            aux = _getSpecification(classSpecs, className, k, lispPropertiesDic[k])
+            reader, writer, maximum = aux[0], aux[1], aux[2]
+            if 1 == maximum:
+                innerString = innerString + "  (when (null (%s orig)) (setf (%s orig) (make-instance '%s)))\n" % (reader, writer, lispPropertiesDic[k]["replacenullby"])
+        if 0 < len(lispPropertiesDic[k].get("musthave", [])):
+            aux = _getSpecification(classSpecs, className, k, lispPropertiesDic[k])
+            reader, writer, maximum = aux[0], aux[1], aux[2]
+            if 1 != maximum:
+                for e in lispPropertiesDic[k]["musthave"]:
+                    innerString = innerString + "  (when (null (find '%s (%s orig) :test (lambda (x y) (eq x (type-of y))))) (setf (%s orig) (cons (make-instance '%s) (%s orig))))\n" % (e, reader, writer, e, reader)
+    persistentID = None
+    regularID = None
+    for k in lispPropertiesDic.keys():
+        if lispPropertiesDic[k].get("ispersistentid", False):
+            persistentID = k
+        if lispPropertiesDic[k].get("isid", False):
+            regularID = k
+    if (persistentID is not None) and (regularID is not None):
+        innerString = innerString + "  (let ((persistent-id (make-id (type-of orig))))\n    (setf (%s orig) persistent-id)\n    (setf (%s orig) (make-id persistent-id)))\n" % (_getSpecification(classSpecs, className, persistentID, lispPropertiesDic[persistentID])[1], _getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1])
+    elif persistentID is not None:
+        innerString = innerString + "  (setf (%s orig) (make-id (type-of orig)))\n" % _getSpecification(classSpecs, className, persistentID, lispPropertiesDic[persistentID])[1]
+    elif regularID is not None:
+        innerString = innerString + "  (setf (%s orig) (make-id (type-of orig)))\n" % _getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1]
+    if "" != innerString:
+        lispIniAfterMethodDef = "(defmethod initialize-instance :after (orig %s)\n%s)\n\n" % (className, innerString[:-1])
     lispCopyMethodDef = ""
     if 0 < len(lispDataPropertiesDic) + len(lispPropertiesDic):
         propertyCopyCode = ""
@@ -159,11 +194,11 @@ def generateClassCode(classSpecs, className):
         for k in sorted(lispPropertiesDic.keys()):
             propertyCopyCode = propertyCopyCode + copyLispPropertyCode(classSpecs, className, k, lispPropertiesDic[k])
         lispCopyMethodDef = "(defmethod copy-object-content (original %s) (copy %s)\n%s)\n\n" % (className, className, propertyCopyCode[:-1])
-    return lispClassDef + lispCopyMethodDef
+    return lispClassDef + lispIniAfterMethodDef + lispCopyMethodDef
     
 def main():
     if 3 > len(sys.argv):
-        print("Need an input yaml file and an output file as command line arguments!\nExample usage:\ncodegenLisp onotology.yaml ontology.lisp")
+        print("Need an input yaml file and an output file as command line arguments!\nExample usage:\ncodegenLisp ontology.yaml ontology.lisp")
         sys.exit(0)
     try:
         with open(sys.argv[1], "r") as infile:
