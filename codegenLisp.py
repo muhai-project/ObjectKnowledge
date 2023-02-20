@@ -1,6 +1,7 @@
 import os
 import sys
 import yaml
+# python codegenLisp.py ontology.yaml ontology.lisp
 
 #(defclass container (arrangeable)
 #  ((contents :type list :initarg :contents :accessor contents :initform '()))
@@ -89,9 +90,10 @@ def _makeAccessor(reader, writer):
 def _makeTypeSpec(typeStr, maximum):
     if 1 == maximum:
         return typeStr
-    if '' == typeStr:
-        return 'list'
-    return ("(list %s)" % typeStr)
+    return 'list'
+    # if maximum is None:
+    #     return typeStr
+    #return ("(list %s)" % typeStr)
     
 def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
     reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
@@ -103,12 +105,12 @@ def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
                 return "  (%s :initform (cons (make-instance '%s) nil))" % (propName, initform)
         return ""
     if "nil" == initform:
-        return "  (%s %s\n      :initarg %s\n      %s\n      :initform nil)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer))
+        return "  (%s :type %s\n      :initarg :%s\n      %s\n      :initform nil)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer))
     elif "T" == initform:
-        return "  (%s %s\n      :initarg %s\n      %s\n      :initform T)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer))
+        return "  (%s :type %s\n      :initarg :%s\n      %s\n      :initform T)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer))
     if 1 != maximum:
-        return "  (%s %s\n      :initarg %s\n      %s\n      :initform (cons (make-instance '%s) nil))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
-    return "  (%s %s\n      :initarg %s\n      %s\n      :initform (make-instance '%s))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
+        return "  (%s :type %s\n      :initarg :%s\n      %s\n      :initform (cons (make-instance '%s) nil))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
+    return "  (%s :type %s\n      :initarg :%s\n      %s\n      :initform (make-instance '%s))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
     
 def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
     reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
@@ -116,7 +118,7 @@ def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
         if "default" in propSpec:
             return "  (%s :initform %s)\n" % (propName, initform)
         return ""
-    return "  (%s %s\n      :initarg %s\n      %s\n      :initform %s)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
+    return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform {initform})\n"
 
 def copyLispPropertyCode(classSpecs, className, propName, propSpec):
     reader, writer, maximum, shared, _, _, _, _, isPersistentID, isID = _getSpecification(classSpecs, className, propName, propSpec)
@@ -185,7 +187,7 @@ def generateClassCode(classSpecs, className):
     elif regularID is not None:
         innerString = innerString + "  (setf (%s orig) (make-id (type-of orig)))\n" % _getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1]
     if "" != innerString:
-        lispIniAfterMethodDef = "(defmethod initialize-instance :after (orig %s)\n%s)\n\n" % (className, innerString[:-1])
+        lispIniAfterMethodDef = "(defmethod initialize-instance :after ((orig %s) &key)\n%s)\n\n" % (className, innerString[:-1])
     lispCopyMethodDef = ""
     if 0 < len(lispDataPropertiesDic) + len(lispPropertiesDic):
         propertyCopyCode = ""

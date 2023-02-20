@@ -81,7 +81,7 @@ owlprefixes:
 #                              collect (copy-object item))))
 #
 #(defclass transferable-container (container fetchable conceptualizable)
-#  ((arrangement :initform nil)) 
+#  ((arrangement :initform nil))
 #  (:documentation "A container that can transferred."))
 #
 #(defmethod initialize-instance :after ((transferable-container transferable-container) &key)
@@ -135,7 +135,7 @@ classes:
       is-concept:
         default: true # Inherited from conceptualizable, no need to specify more here.
   arrangeable:
-    documentation: "An object with a convention on how to arrange items contained/supported by the object." 
+    documentation: "An object with a convention on how to arrange items contained/supported by the object."
     superclasses:
       - kitchen-entity
     owl: "muhai:Arrangeable"
@@ -165,11 +165,10 @@ classes:
     dispositions:
       loose-containment:
         owl: "muhai:LooseContainmentInstrument"
-        documentation: "The disposition of an object to be a loose container; this may be either of an actual containment, support, or storage dispositions."    
+        documentation: "The disposition of an object to be a loose container; this may be either of an actual containment, support, or storage dispositions."
   transferable-container:
     documentation: "A container that can be carried from place to place."
     superclasses:
-      - arrangeable
       - container
       - fetchable
       - conceptualizable
@@ -182,7 +181,6 @@ classes:
   cooking-utensil:
     documentation: "A manipulable, carriable object used as an instrument in cooking tasks."
     superclasses:
-      - kitchen-entity
       - fetchable
     owl: "muhai:CookingUtensil"
   kitchen-state:
@@ -226,7 +224,7 @@ classes:
     dataproperties:
       temperature:
         owl: "muhai:hasTemperature"
-        range: number
+        range: amount
         max: 1
     qualities:
       temperature:
@@ -242,9 +240,9 @@ classes:
         range: boolean
         max: 1
     dispositions:
-        bakeable:
-          owl: "muhai:Bakeable"
-          documentation: "The disposition of an object to chemically transform when subjected to a baking process."
+      bakeable:
+        owl: "muhai:Bakeable"
+        documentation: "The disposition of an object to chemically transform when subjected to a baking process."
   beatable:
     documentation: "An object that can be subjected to mixing by beating it with e.g. a whisk."
     superclasses:
@@ -336,7 +334,7 @@ classes:
   can-be-spread-upon:
     documentation: "An object that can be spread upon others."
     superclasses:
-        - kitchen-entity
+      - kitchen-entity
     owl: "muhai:SpreadableResourceObject"
     dataproperties:
       spread-with:
@@ -1382,7 +1380,6 @@ classes:
   juice:
     documentation: "A liquid produced usually from some fruit or vegetable."
     superclasses:
-      - ingredient
       - fluid
     owl: "muhai:Juice"
   lentils:
@@ -1411,7 +1408,6 @@ classes:
   molasses:
     documentation: "Molasses."
     superclasses:
-      - ingredient
       - fluid
     owl: "muhai:Molasses"
   oats:
@@ -1529,18 +1525,15 @@ classes:
     superclasses:
       - ingredient
       - can-be-brushed-with
-      - fluid
     owl: "muhai:VegetableOil"
   vinegar:
     documentation: "Vinegar."
     superclasses:
-      - ingredient
       - fluid
     owl: "muhai:Vinegar"
   water:
     documentation: "Water."
     superclasses:
-      - ingredient
       - fluid
       - has-temperature
     owl: "muhai:Water"
