@@ -1,5 +1,5 @@
-import yaml
 import argparse
+import yaml
 
 # (defclass container (arrangeable)
 #  ((contents :type list :initarg :contents :accessor contents :initform '()))
@@ -109,11 +109,9 @@ def _makeAccessor(reader, writer):
 def _makeTypeSpec(typeStr, maximum):
     if 1 == maximum:
         return typeStr
-    return "list"
-    # if maximum is None:
-    #     return typeStr
-    # return ("(list %s)" % typeStr)
-    # return (or )
+    if "" == typeStr:
+        return "list"
+    return f"(list {typeStr})"
 
 
 def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
@@ -135,7 +133,7 @@ def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
                 return f"  ({propName} :initform (make-instance '{initform}))\n"
             else:
                 return (
-                    f"  ({propName} :initform (cons (make-instance '{initform}) nil))"
+                    f"  ({propName} :initform (cons (make-instance '{initform}) nil)))"
                 )
         return ""
     if "nil" == initform:
@@ -229,6 +227,7 @@ def generateClassCode(classSpecs, className):
             classSpecs, className, k, lispPropertiesDic[k]
         )
     lispClassDef = f'(defclass {className} ({lispSuperclasses})\n  ({lispProperties[2:-1]})\n  (:documentation "{docString}"))\n\n'
+
     lispIniAfterMethodDef = ""
     innerString = ""
     for k in lispPropertiesDic.keys():
@@ -284,7 +283,7 @@ def generateClassCode(classSpecs, className):
             propertyCopyCode = propertyCopyCode + copyLispPropertyCode(
                 classSpecs, className, k, lispPropertiesDic[k]
             )
-        lispCopyMethodDef = f"(defmethod copy-object-content (original {className}) (copy {className})\n{propertyCopyCode[:-1]})\n\n"
+        lispCopyMethodDef = f"(defmethod copy-object-content ((original {className}) (copy {className}))\n{propertyCopyCode[:-1]})\n\n"
     return lispClassDef + lispIniAfterMethodDef + lispCopyMethodDef
 
 
@@ -332,9 +331,45 @@ def main():
             # for className in sorted(classSpecs.keys()):
             for className in classSpecs.keys():
                 f.write(f"{generateClassCode(classSpecs, className)}\n")
+
+            f.write(
+                """
+(defmethod find-in-kitchen-state-contents ((kitchen-state kitchen-state) (classname symbol))
+  (labels ((traverse (root classname)
+             (if (eq (type-of root) classname)
+                 root
+                 (when (slot-exists-p root 'contents)
+                   (loop for child in (slot-value root 'contents)
+                         for found = (traverse child classname)
+                         when found
+                           return found)))))
+    (traverse kitchen-state classname)))
+
+
+(defmethod counter-top ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'counter-top))
+
+(defmethod pantry ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'pantry))
+
+(defmethod fridge ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'fridge))
+
+(defmethod freezer ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'freezer))
+
+(defmethod oven ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'oven))
+
+(defmethod microwave ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'microwave))
+
+(defmethod kitchen-cabinet ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'kitchen-cabinet))
+
+(defmethod stove ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'stove))
+"""
+            )
     except FileNotFoundError as exc:
         print(f"Encountered error while writing to {outfile} :", exc)
-
-
-if "__main__" == __name__:
-    main()

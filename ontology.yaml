@@ -158,6 +158,7 @@ classes:
     documentation: "A high heating setting for the stove."
     superclasses:
       - stove-mode
+  # in arrangeable type should be left out
   arrangeable:
     documentation: "An object with a convention on how to arrange items contained/supported by the object."
     superclasses:
@@ -184,7 +185,7 @@ classes:
     properties:
       contents:
         owl: "muhai:looselyContains"
-        range: kitchen-entity
+        # range: kitchen-entity
     dispositions:
       loose-containment:
         owl: "muhai:LooseContainmentInstrument"
@@ -205,11 +206,13 @@ classes:
     documentation: "A manipulable, carriable object used as an instrument in cooking tasks."
     superclasses:
       - fetchable
+      - conceptualizable
     owl: "muhai:CookingUtensil"
   kitchen-state:
     documentation: "Representation of the state of the kitchen."
     superclasses:
       - container
+      - has-temperature
     python: false
     owl: false
     properties:
@@ -230,7 +233,7 @@ classes:
         max: 1
         min: 1
   vr-kitchen-state:
-    documentation: "Representation of the Abe_sim kitchen state."
+    documentation: "Representation of the Abe-sim kitchen state."
     superclasses:
       - container
     owl: false
@@ -1018,6 +1021,7 @@ classes:
     properties:
       arrangement:
         default: shelved # Property inherited from arrangeable, no need to specify more here.
+        max: 1
   knife:
     documentation: "A knife. Can be used to cut, peel, take seeds out or spread substances such as butter or honey."
     superclasses:
