@@ -1,22 +1,22 @@
-import os
-import sys
+import argparse
 import yaml
 
-#(defclass container (arrangeable)
+# (defclass container (arrangeable)
 #  ((contents :type list :initarg :contents :accessor contents :initform '()))
 #  (:documentation "For objects that are containers (i.e. they have contents)."))
-#(defclass kitchen-entity (entity)
+# (defclass kitchen-entity (entity)
 #  ((persistent-id :type symbol :initarg :persistent-id :accessor persistent-id :initform nil)))
-#(defmethod initialize-instance :after ((kitchen-entity kitchen-entity) &key)
+# (defmethod initialize-instance :after ((kitchen-entity kitchen-entity) &key)
 #  (let ((persistent-id  (make-id (type-of kitchen-entity))))
 #    (setf (persistent-id kitchen-entity) persistent-id)
 #    (setf (id kitchen-entity) (make-id persistent-id))))
-#(defmethod copy-object-content ((kitchen-state kitchen-state) (copy kitchen-state))
+# (defmethod copy-object-content ((kitchen-state kitchen-state) (copy kitchen-state))
 #  (setf (kitchen-time copy) (kitchen-time kitchen-state)))
-#(defmethod copy-object-content ((container container) (copy container))
+# (defmethod copy-object-content ((container container) (copy container))
 #  "Copying containers."
 #  (setf (contents copy) (loop for item in (contents container)
 #                              collect (copy-object item))))
+
 
 def _inSuperclasses(classSpecs, className, propName):
     toCheck = set()
@@ -41,122 +41,193 @@ def _inSuperclasses(classSpecs, className, propName):
     typeStrs = sorted(list(typeStrs))
     maximums = sorted(list(maximums))
     if 1 < len(typeStrs):
-        print("Warning: property %s has several types attached in the inheritance hierarchy: %s" % (propName, str(typeStrs)))
+        print(
+            f"Warning: property {propName} has several types attached in the inheritance hierarchy: {typeStrs}"
+        )
     if 1 < len(maximums):
-        print("Warning: property %s has several maximums attached in the inheritance hierarchy: %s" % (propName, str(maximums)))
+        print(
+            f"Warning: property {propName} has several maximums attached in the inheritance hierarchy: {maximums}"
+        )
     if 0 == len(typeStrs):
-        typeStrs = ['']
+        typeStrs = [""]
     if 0 == len(maximums):
         maximums = [None]
     return present, typeStrs[0], maximums[0]
-    
+
+
 def _getSpecification(classSpecs, className, propName, propSpec):
-    writer = propSpec.get('accessor', propSpec.get('writer', propName))
-    reader = propSpec.get('accessor', propSpec.get('reader', propName))
-    maximum = propSpec.get('max', None)
-    shared = propSpec.get('shared', False)
-    initarg = propSpec.get('initarg', propName)
-    initformYaml = propSpec.get('default', False)
-    isPersistentID = propSpec.get('ispersistentid', False)
-    isID = propSpec.get('isid', False)
+    writer = propSpec.get("accessor", propSpec.get("writer", propName))
+    reader = propSpec.get("accessor", propSpec.get("reader", propName))
+    maximum = propSpec.get("max", None)
+    shared = propSpec.get("shared", False)
+    initarg = propSpec.get("initarg", propName)
+    initformYaml = propSpec.get("default", False)
+    isPersistentID = propSpec.get("ispersistentid", False)
+    isID = propSpec.get("isid", False)
     initform = "nil"
     if initformYaml is True:
-        initform = 'T'
+        initform = "T"
     elif initformYaml is not False:
         initform = str(initformYaml)
-    typeStr = propSpec.get('range', '')
-    declaredAbove, typeStrSuperclass, maximumSuperclass = _inSuperclasses(classSpecs, className, propName)
-    if '' == typeStr:
+    typeStr = propSpec.get("range", "")
+    declaredAbove, typeStrSuperclass, maximumSuperclass = _inSuperclasses(
+        classSpecs, className, propName
+    )
+    if "" == typeStr:
         typeStr = typeStrSuperclass
     if maximum is None:
         maximum = maximumSuperclass
-    return reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, isPersistentID, isID
-    
+    return (
+        reader,
+        writer,
+        maximum,
+        shared,
+        initarg,
+        initform,
+        typeStr,
+        declaredAbove,
+        isPersistentID,
+        isID,
+    )
+
+
 def _makeAccessor(reader, writer):
     accessW = ""
     accessR = ""
     if writer == reader:
-        return (":accessor %s" % writer)
+        return f":accessor {writer}"
     else:
-        if writer != '':
-            accessW = (":writer %s" % writer)
-        if reader != '':
-            accessR = (":reader %s" % reader)
+        if writer != "":
+            accessW = f":writer {writer}"
+        if reader != "":
+            accessR = f":reader {reader}"
     if (0 < len(accessW)) and (0 < len(accessR)):
-        return accessW + ' ' + accessR
+        return accessW + " " + accessR
     return accessW + accessR
-    
+
+
 def _makeTypeSpec(typeStr, maximum):
     if 1 == maximum:
         return typeStr
-    if '' == typeStr:
-        return 'list'
-    return ("(list %s)" % typeStr)
-    
+    if "" == typeStr:
+        return "list"
+    return f"(list {typeStr})"
+
+
 def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
+    (
+        reader,
+        writer,
+        maximum,
+        shared,
+        initarg,
+        initform,
+        typeStr,
+        declaredAbove,
+        _,
+        _,
+    ) = _getSpecification(classSpecs, className, propName, propSpec)
     if declaredAbove:
         if "default" in propSpec:
             if 1 == maximum:
-                return "  (%s :initform (make-instance '%s))\n" % (propName, initform)
+                return f"  ({propName} :initform (make-instance '{initform}))\n"
             else:
-                return "  (%s :initform (cons (make-instance '%s) nil))" % (propName, initform)
+                return (
+                    f"  ({propName} :initform (cons (make-instance '{initform}) nil)))"
+                )
         return ""
     if "nil" == initform:
-        return "  (%s %s\n      :initarg %s\n      %s\n      :initform nil)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer))
+        return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform nil)\n"
     elif "T" == initform:
-        return "  (%s %s\n      :initarg %s\n      %s\n      :initform T)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer))
+        return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform T)\n"
     if 1 != maximum:
-        return "  (%s %s\n      :initarg %s\n      %s\n      :initform (cons (make-instance '%s) nil))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
-    return "  (%s %s\n      :initarg %s\n      %s\n      :initform (make-instance '%s))\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
-    
+        return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform (cons (make-instance '{initform}) nil))\n"
+    return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform (make-instance '{initform}))\n"
+
+
 def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, initarg, initform, typeStr, declaredAbove, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
+    (
+        reader,
+        writer,
+        maximum,
+        shared,
+        initarg,
+        initform,
+        typeStr,
+        declaredAbove,
+        _,
+        _,
+    ) = _getSpecification(classSpecs, className, propName, propSpec)
     if declaredAbove:
         if "default" in propSpec:
-            return "  (%s :initform %s)\n" % (propName, initform)
+            return f"  ({propName} :initform {initform})\n"
         return ""
-    return "  (%s %s\n      :initarg %s\n      %s\n      :initform %s)\n" % (propName, _makeTypeSpec(typeStr, maximum), initarg, _makeAccessor(reader, writer), initform)
+    return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform {initform})\n"
+
 
 def copyLispPropertyCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, _, _, _, _, isPersistentID, isID = _getSpecification(classSpecs, className, propName, propSpec)
+    (
+        reader,
+        writer,
+        maximum,
+        shared,
+        _,
+        _,
+        _,
+        _,
+        isPersistentID,
+        isID,
+    ) = _getSpecification(classSpecs, className, propName, propSpec)
     if isPersistentID:
-        return "  (setf (%s copy) (%s original))\n" % (writer, reader)
+        return f"  (setf ({writer} copy) ({reader} original))\n"
     elif isID:
-        return "  (setf (%s copy) (make-id (%s original)))\n" % (writer, reader)
-    origValues = "(%s original)" % reader
+        return f"  (setf ({writer} copy) (make-id ({reader} original)))\n"
+    origValues = f"({reader} original)"
     if not shared:
-        origValues = "(copy-object %s)" % origValues
+        origValues = f"(copy-object {origValues})"
     if 1 != maximum:
         itemOrCopy = "item"
         if not shared:
             itemOrCopy = "(copy-object item)"
-        origValues = "(loop for item in (%s original) collect %s)" % (reader, itemOrCopy)
-    return "  (setf (%s copy) %s)\n" % (writer, origValues)
+        origValues = f"(loop for item in ({reader} original) collect {itemOrCopy})"
+    return f"  (setf ({writer} copy) {origValues})\n"
+
 
 def copyLispDataPropertyCode(classSpecs, className, propName, propSpec):
-    reader, writer, maximum, shared, _, _, _, _, _, _ = _getSpecification(classSpecs, className, propName, propSpec)
-    origValues = "(%s original)" % reader
+    reader, writer, maximum, shared, _, _, _, _, _, _ = _getSpecification(
+        classSpecs, className, propName, propSpec
+    )
+    origValues = f"({reader} original)"
     if 1 != maximum:
-        origValues = "(loop for item in %s collect item)" % origValues
-    return "  (setf (%s copy) %s)\n" % (writer, origValues)
+        origValues = f"(loop for item in {origValues} collect item)"
+    return f"  (setf ({writer} copy) {origValues})\n"
+
 
 def generateClassCode(classSpecs, className):
     classSpec = classSpecs[className]
-    docString = classSpec.get('documentation', '')
-    lispSuperclassesList = classSpec.get('superclasses', [])
-    lispSuperclasses = ' '.join(lispSuperclassesList)
-    lispDataPropertiesDic = classSpec.get('dataproperties', {})
-    lispPropertiesDic = classSpec.get('properties', {})
-    duplicatePropertyNames = set(lispDataPropertiesDic.keys()).intersection(lispPropertiesDic.keys())
+    docString = classSpec.get("documentation", "")
+    lispSuperclassesList = classSpec.get("superclasses", [])
+    lispSuperclasses = " ".join(lispSuperclassesList)
+    lispDataPropertiesDic = classSpec.get("dataproperties", {})
+    lispPropertiesDic = classSpec.get("properties", {})
+    duplicatePropertyNames = set(lispDataPropertiesDic.keys()).intersection(
+        lispPropertiesDic.keys()
+    )
     if 0 < len(duplicatePropertyNames):
-        print("WARNING: duplicate property names (same names used for both data and object properties): %s" % str(duplicatePropertyNames))
+        print(
+            f"WARNING: duplicate property names (same names used for both data and object properties): {str(duplicatePropertyNames)}"
+        )
     lispProperties = ""
     for k in sorted(lispDataPropertiesDic.keys()):
-        lispProperties = lispProperties + dataPropertyLispDeclarationCode(classSpecs, className, k, lispDataPropertiesDic[k])
+        lispProperties = lispProperties + dataPropertyLispDeclarationCode(
+            classSpecs, className, k, lispDataPropertiesDic[k]
+        )
     for k in sorted(lispPropertiesDic.keys()):
-        lispProperties = lispProperties + propertyLispDeclarationCode(classSpecs, className, k, lispPropertiesDic[k])
-    lispClassDef = "(defclass %s (%s)\n  (%s)\n  (:documentation \"%s\"))\n\n" % (className, lispSuperclasses, lispProperties[2:-1], docString)
+        lispProperties = lispProperties + propertyLispDeclarationCode(
+            classSpecs, className, k, lispPropertiesDic[k]
+        )
+    lispClassDef = f'(defclass {className} ({lispSuperclasses})\n  ({lispProperties[2:-1]})\n  (:documentation "{docString}"))\n\n'
+
     lispIniAfterMethodDef = ""
     innerString = ""
     for k in lispPropertiesDic.keys():
@@ -164,13 +235,19 @@ def generateClassCode(classSpecs, className):
             aux = _getSpecification(classSpecs, className, k, lispPropertiesDic[k])
             reader, writer, maximum = aux[0], aux[1], aux[2]
             if 1 == maximum:
-                innerString = innerString + "  (when (null (%s orig)) (setf (%s orig) (make-instance '%s)))\n" % (reader, writer, lispPropertiesDic[k]["replacenullby"])
+                innerString = (
+                    innerString
+                    + f"  (when (null ({reader} orig)) (setf ({writer} orig) (make-instance '{lispPropertiesDic[k]['replacenullby']})))\n"
+                )
         if 0 < len(lispPropertiesDic[k].get("musthave", [])):
             aux = _getSpecification(classSpecs, className, k, lispPropertiesDic[k])
             reader, writer, maximum = aux[0], aux[1], aux[2]
             if 1 != maximum:
                 for e in lispPropertiesDic[k]["musthave"]:
-                    innerString = innerString + "  (when (null (find '%s (%s orig) :test (lambda (x y) (eq x (type-of y))))) (setf (%s orig) (cons (make-instance '%s) (%s orig))))\n" % (e, reader, writer, e, reader)
+                    innerString = (
+                        innerString
+                        + f"  (when (null (find '{e} ({reader} orig) :test (lambda (x y) (eq x (type-of y))))) (setf ({writer} orig) (cons (make-instance '{e}) ({reader} orig))))\n"
+                    )
     persistentID = None
     regularID = None
     for k in lispPropertiesDic.keys():
@@ -179,44 +256,120 @@ def generateClassCode(classSpecs, className):
         if lispPropertiesDic[k].get("isid", False):
             regularID = k
     if (persistentID is not None) and (regularID is not None):
-        innerString = innerString + "  (let ((persistent-id (make-id (type-of orig))))\n    (setf (%s orig) persistent-id)\n    (setf (%s orig) (make-id persistent-id)))\n" % (_getSpecification(classSpecs, className, persistentID, lispPropertiesDic[persistentID])[1], _getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1])
+        innerString = (
+            innerString
+            + f"  (let ((persistent-id (make-id (type-of orig))))\n    (setf ({ _getSpecification(classSpecs, className, persistentID, lispPropertiesDic[persistentID])[1]} orig) persistent-id)\n    (setf ({_getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1]} orig) (make-id persistent-id)))\n"
+        )
     elif persistentID is not None:
-        innerString = innerString + "  (setf (%s orig) (make-id (type-of orig)))\n" % _getSpecification(classSpecs, className, persistentID, lispPropertiesDic[persistentID])[1]
+        innerString = (
+            innerString
+            + f"  (setf ({_getSpecification(classSpecs, className, persistentID, lispPropertiesDic[persistentID])[1]} orig) (make-id (type-of orig)))\n"
+        )
     elif regularID is not None:
-        innerString = innerString + "  (setf (%s orig) (make-id (type-of orig)))\n" % _getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1]
+        innerString = (
+            innerString
+            + f"  (setf ({_getSpecification(classSpecs, className, regularID, lispPropertiesDic[regularID])[1]} orig) (make-id (type-of orig)))\n"
+        )
     if "" != innerString:
-        lispIniAfterMethodDef = "(defmethod initialize-instance :after (orig %s)\n%s)\n\n" % (className, innerString[:-1])
+        lispIniAfterMethodDef = f"(defmethod initialize-instance :after ((orig {className}) &key)\n{innerString[:-1]})\n\n"
     lispCopyMethodDef = ""
     if 0 < len(lispDataPropertiesDic) + len(lispPropertiesDic):
         propertyCopyCode = ""
         for k in sorted(lispDataPropertiesDic.keys()):
-            propertyCopyCode = propertyCopyCode + copyLispDataPropertyCode(classSpecs, className, k, lispDataPropertiesDic[k])
+            propertyCopyCode = propertyCopyCode + copyLispDataPropertyCode(
+                classSpecs, className, k, lispDataPropertiesDic[k]
+            )
         for k in sorted(lispPropertiesDic.keys()):
-            propertyCopyCode = propertyCopyCode + copyLispPropertyCode(classSpecs, className, k, lispPropertiesDic[k])
-        lispCopyMethodDef = "(defmethod copy-object-content (original %s) (copy %s)\n%s)\n\n" % (className, className, propertyCopyCode[:-1])
+            propertyCopyCode = propertyCopyCode + copyLispPropertyCode(
+                classSpecs, className, k, lispPropertiesDic[k]
+            )
+        lispCopyMethodDef = f"(defmethod copy-object-content ((original {className}) (copy {className}))\n{propertyCopyCode[:-1]})\n\n"
     return lispClassDef + lispIniAfterMethodDef + lispCopyMethodDef
-    
-def main():
-    if 3 > len(sys.argv):
-        print("Need an input yaml file and an output file as command line arguments!\nExample usage:\ncodegenLisp ontology.yaml ontology.lisp")
-        sys.exit(0)
-    try:
-        with open(sys.argv[1], "r") as infile:
-            try:
-                data = yaml.safe_load(infile)
-            except yamlYAMLError as exc:
-                print("Encountered error while parsing file:", exc)
-                sys.exit(0)
-    except Exception as exc:
-        print(("Encountered error while accessing %s :" % sys.argv[1]), exc)
-    classSpecs = data['classes']
-    try:
-        with open(sys.argv[2], "w") as outfile:
-            outfile.write("(in-package :%s)\n\n" % data.get('lisp-package', 'muhai-cookingbot'))
-            for className in sorted(classSpecs.keys()):
-                outfile.write("%s\n" % generateClassCode(classSpecs, className))
-    except Exception as exc:
-        print(("Encountered error while writing to %s :" % sys.argv[2]), exc)
 
-if "__main__" == __name__:
-    main()
+
+def main():
+    argumentparser = argparse.ArgumentParser(
+        prog="python codegenLisp.py ",
+        description="This program generates generates a lisp ontoloty class hierarchy from the yaml specifications.",
+        epilog="Example usage:\ncodegenLisp ontology.yaml ontology.lisp",
+    )
+    argumentparser.add_argument(
+        "-i",
+        "--infile",
+        dest="infile",
+        help="The input file, eg. `ontoloty.yaml`",
+        type=str,
+        required=True,
+    )
+    argumentparser.add_argument(
+        "-o",
+        "--outfile",
+        dest="outfile",
+        help="The output file eg. `ontology.lisp`",
+        type=str,
+        required=True,
+    )
+    args = argumentparser.parse_args()
+    infile = args.infile
+    outfile = args.outfile
+
+    try:
+        with open(infile, "r", encoding="utf-8") as infile:
+            data = yaml.safe_load(infile)
+    except yaml.YAMLError as exc:
+        print("Encountered error while parsing file:", exc)
+        return
+    except FileNotFoundError as exc:
+        print(f"Encountered error while accessing {infile} :", exc)
+
+    classSpecs = data["classes"]
+
+    try:
+        with open(outfile, "w", encoding="utf-8") as f:
+            f.write(f"(in-package :{data.get('lisp-package', 'muhai-cookingbot')})\n\n")
+            # Disable sort for now to avoid subclasses being defined before superclasses
+            # for className in sorted(classSpecs.keys()):
+            for className in classSpecs.keys():
+                f.write(f"{generateClassCode(classSpecs, className)}\n")
+
+            f.write(
+                """
+(defmethod find-in-kitchen-state-contents ((kitchen-state kitchen-state) (classname symbol))
+  (labels ((traverse (root classname)
+             (if (eq (type-of root) classname)
+                 root
+                 (when (slot-exists-p root 'contents)
+                   (loop for child in (slot-value root 'contents)
+                         for found = (traverse child classname)
+                         when found
+                           return found)))))
+    (traverse kitchen-state classname)))
+
+
+(defmethod counter-top ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'counter-top))
+
+(defmethod pantry ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'pantry))
+
+(defmethod fridge ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'fridge))
+
+(defmethod freezer ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'freezer))
+
+(defmethod oven ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'oven))
+
+(defmethod microwave ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'microwave))
+
+(defmethod kitchen-cabinet ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'kitchen-cabinet))
+
+(defmethod stove ((kitchen-state kitchen-state))
+  (find-in-kitchen-state-contents kitchen-state 'stove))
+"""
+            )
+    except FileNotFoundError as exc:
+        print(f"Encountered error while writing to {outfile} :", exc)
