@@ -226,6 +226,13 @@ classes:
           - freezer
           - oven
           - counter-top
+      temperature:
+        default:
+          t: amount
+          unit: degrees-celsius
+          quantity:
+            t: quantity
+            value: 18
     dataproperties:
       kitchen-time:
         range: integer
@@ -250,7 +257,7 @@ classes:
     dataproperties:
       temperature:
         owl: "muhai:hasTemperature"
-        range: integer
+        range: amount
         max: 1
     qualities:
       temperature:

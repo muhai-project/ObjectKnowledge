@@ -53,7 +53,35 @@ def _inSuperclasses(classSpecs, className, propName):
     if 0 == len(maximums):
         maximums = [None]
     return present, typeStrs[0], maximums[0]
+    
+def get_number(s):
+    if s is False:
+        return None
+    try:
+        retq = int(s)
+        return retq
+    except ValueError:
+        try:
+            retq = float(s)
+        except ValueError:
+            return None
 
+def _makeInitform(initformYaml, spacing=None):
+    initform = "nil"
+    if initformYaml is True:
+        initform = "T"
+    elif isinstance(initformYaml, dict):
+        eltype = initformYaml["t"]
+        if spacing is None:
+            spacing = " "
+        spacingWithLine = "\n" + spacing
+        props = spacing + spacingWithLine.join([f":{k} {_makeInitform(v, spacing=spacing + ' '*(1 + len(k) + len(' (make-instance ')))}" for k,v in initformYaml.items() if "t" != k])
+        initform = f"(make-instance '{eltype}\n{props})"
+    elif get_number(initformYaml) is not None:
+        initform = get_number(initformYaml)
+    elif initformYaml is not False:
+        initform = f"(make-instance '{str(initformYaml)})" 
+    return initform
 
 def _getSpecification(classSpecs, className, propName, propSpec):
     writer = propSpec.get("accessor", propSpec.get("writer", propName))
@@ -64,11 +92,6 @@ def _getSpecification(classSpecs, className, propName, propSpec):
     initformYaml = propSpec.get("default", False)
     isPersistentID = propSpec.get("ispersistentid", False)
     isID = propSpec.get("isid", False)
-    initform = "nil"
-    if initformYaml is True:
-        initform = "T"
-    elif initformYaml is not False:
-        initform = str(initformYaml)
     typeStr = propSpec.get("range", "")
     declaredAbove, typeStrSuperclass, maximumSuperclass = _inSuperclasses(
         classSpecs, className, propName
@@ -77,6 +100,9 @@ def _getSpecification(classSpecs, className, propName, propSpec):
         typeStr = typeStrSuperclass
     if maximum is None:
         maximum = maximumSuperclass
+    initform = _makeInitform(initformYaml, spacing=" "*(6 + len(":initform (make-instance ")))
+    if (1 != maximum) and ("nil" != initform):
+        initform = f"(cons {initform} nil)"
     return (
         reader,
         writer,
@@ -107,12 +133,16 @@ def _makeAccessor(reader, writer):
 
 
 def _makeTypeSpec(typeStr, maximum):
-    if 1 == maximum:
-        return typeStr
     if "" == typeStr:
-        return "list"
-    return f"(list {typeStr})"
-
+        return ""
+    retq = ":type "
+    if 1 == maximum:
+        retq += typeStr
+    elif "" == typeStr:
+        retq += "list"
+    else:
+        retq += f"(list {typeStr})"
+    return retq
 
 def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
     (
@@ -127,23 +157,9 @@ def propertyLispDeclarationCode(classSpecs, className, propName, propSpec):
         _,
         _,
     ) = _getSpecification(classSpecs, className, propName, propSpec)
-    if declaredAbove:
-        if "default" in propSpec:
-            if 1 == maximum:
-                return f"  ({propName} :initform (make-instance '{initform}))\n"
-            else:
-                return (
-                    f"  ({propName} :initform (cons (make-instance '{initform}) nil)))"
-                )
+    if declaredAbove and "default" not in propSpec:
         return ""
-    if "nil" == initform:
-        return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform nil)\n"
-    elif "T" == initform:
-        return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform T)\n"
-    if 1 != maximum:
-        return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform (cons (make-instance '{initform}) nil))\n"
-    return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform (make-instance '{initform}))\n"
-
+    return f"   ({propName} {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform {initform})"
 
 def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
     (
@@ -162,7 +178,7 @@ def dataPropertyLispDeclarationCode(classSpecs, className, propName, propSpec):
         if "default" in propSpec:
             return f"  ({propName} :initform {initform})\n"
         return ""
-    return f"  ({propName} :type {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform {initform})\n"
+    return f"   ({propName} {_makeTypeSpec(typeStr, maximum)}\n      :initarg :{initarg}\n      {_makeAccessor(reader, writer)}\n      :initform {initform})"
 
 
 def copyLispPropertyCode(classSpecs, className, propName, propSpec):
@@ -217,16 +233,9 @@ def generateClassCode(classSpecs, className):
         print(
             f"WARNING: duplicate property names (same names used for both data and object properties): {str(duplicatePropertyNames)}"
         )
-    lispProperties = ""
-    for k in sorted(lispDataPropertiesDic.keys()):
-        lispProperties = lispProperties + dataPropertyLispDeclarationCode(
-            classSpecs, className, k, lispDataPropertiesDic[k]
-        )
-    for k in sorted(lispPropertiesDic.keys()):
-        lispProperties = lispProperties + propertyLispDeclarationCode(
-            classSpecs, className, k, lispPropertiesDic[k]
-        )
-    lispClassDef = f'(defclass {className} ({lispSuperclasses})\n  ({lispProperties[2:-1]})\n  (:documentation "{docString}"))\n\n'
+    lispProperties = "\n".join([x for x in [dataPropertyLispDeclarationCode(classSpecs, className, k, lispDataPropertiesDic[k]) for k in sorted(lispDataPropertiesDic.keys())] if x.strip()])
+    lispProperties += "\n" + "\n".join([x for x in [propertyLispDeclarationCode(classSpecs, className, k, lispPropertiesDic[k]) for k in sorted(lispPropertiesDic.keys())] if x.strip()])
+    lispClassDef = f'(defclass {className} ({lispSuperclasses})\n  ({lispProperties.strip()})\n  (:documentation "{docString}"))\n\n'
 
     lispIniAfterMethodDef = ""
     innerString = ""
@@ -297,7 +306,7 @@ def main():
         "-i",
         "--infile",
         dest="infile",
-        help="The input file, eg. `ontoloty.yaml`",
+        help="The input file, eg. `ontology.yaml`",
         type=str,
         required=True,
     )
@@ -373,3 +382,7 @@ def main():
             )
     except FileNotFoundError as exc:
         print(f"Encountered error while writing to {outfile} :", exc)
+        
+if __name__ == "__main__":
+    main()
+
