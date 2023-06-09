@@ -158,7 +158,7 @@ classes:
     documentation: "A high heating setting for the stove."
     superclasses:
       - stove-mode
-  # in arrangeable type should be left out
+  #TODO: in arrangeable type should be left out
   arrangeable:
     documentation: "An object with a convention on how to arrange items contained/supported by the object."
     superclasses:
@@ -202,6 +202,11 @@ classes:
         owl: "muhai:isTransferableContainerWithContents"
         range: boolean
         max: 1
+  microwave:
+    documentation: "The microwave. It's a container."
+    superclasses:
+      - container
+      - has-temperature
   cooking-utensil:
     documentation: "A manipulable, carriable object used as an instrument in cooking tasks."
     superclasses:
@@ -226,6 +231,7 @@ classes:
           - freezer
           - oven
           - counter-top
+          - microwave
       temperature:
         default:
           t: amount
@@ -257,7 +263,6 @@ classes:
     dataproperties:
       temperature:
         owl: "muhai:hasTemperature"
-        range: amount
         max: 1
     qualities:
       temperature:
@@ -285,6 +290,8 @@ classes:
       boiled:
         owl: "muhai:isBoiled"
         range: boolean
+        max: 1
+      boiled-with:
         max: 1
     dispositions:
       boilable:
@@ -321,7 +328,7 @@ classes:
     properties:
       brushed-with:
         owl: "muhai:isBrushedWith"
-        range: can-be-brushed-with
+        max: 1
         shared: false
     dispositions:
       brushing-location:
@@ -371,6 +378,7 @@ classes:
       dipping-resource:
         owl: "muhai:DippingResource"
         documentation: "The disposition of an object that allows others to be dipped into it; this includes some fluidity to allow insertion and stickiness so that parts of the dipping resource object stick to the dipped objects."
+
   can-have-on-top:
     documentation: "An object that, as part of a dish or food item, can have other ingredients on top of itself."
     superclasses:
@@ -379,7 +387,6 @@ classes:
     properties:
       has-on-top:
         owl: "muhai:hasOnTop"
-        range: kitchen-entity
         shared: false
     dispositions:
       support-other-ingredient:
@@ -393,7 +400,6 @@ classes:
     dataproperties:
       spread-with:
         owl: "muhai:hasbeenUsedForSpreadingYN"
-        range: boolean
         max: 1
     dispositions:
       spreadable-resource:
@@ -404,11 +410,6 @@ classes:
     superclasses:
       - kitchen-entity
     owl: "muhai:SprinklableResourceObject"
-    dataproperties:
-      sprinkled-with:
-        owl: "muhai:hasbeenUsedForSprinklingYN"
-        range: boolean
-        max: 1
     dispositions:
       sprinklable-resource:
         owl: "muhai:SprinklingResource"
@@ -418,6 +419,11 @@ classes:
     superclasses:
       - kitchen-entity
     owl: "muhai:SprinklingLocationObject"
+    dataproperties:
+      sprinkled-with:
+        owl: "muhai:hasbeenUsedForSprinklingYN"
+        shared: true
+        max: 1
     dispositions:
       sprinklable-location:
         owl: "muhai:SprinklingLocation"
@@ -428,7 +434,7 @@ classes:
       - cooking-utensil
     owl: "muhai:CoverableResourceObject"
     dataproperties:
-      covered-container:
+      is-covering:
         owl: "muhai:hasBeenUsedForCoveringYN"
         range: boolean
         max: 1
@@ -481,6 +487,10 @@ classes:
       can-flatten:
         owl: "muhai:FlatteningInstrument"
         documentation: "The disposition of an object that allows it to be used to flatten substances that are similar to dough in consistency."
+  can-mingle:
+    documentation: "A tool that can be used for mingling."
+    superclassse:
+      - cooking-utensil
   can-mash:
     documentation: "A tool that can be used for mashing."
     superclasses:
@@ -526,6 +536,12 @@ classes:
       can-mix:
         owl: "muhai:SiftingInstrument"
         documentation: "The disposition of an object that allows it to be used to sift powdery substances to separate different sized grains."
+  liquefiable:
+    documentation: "An ingredient that can be liquefied."
+    dataproperties:
+      is-liquid:
+        range: boolean
+        max: 1
   can-spread:
     documentation: "A tool that can be used for spreading."
     superclasses:
@@ -541,9 +557,8 @@ classes:
       - container
     owl: "muhai:CoverableLocationObject"
     properties:
-      cover:
+      covered-with:
         owl: "muhai:isCoveredBy"
-        range: can-cover
         max: 1
     dispositions:
       coverable:
@@ -614,22 +629,36 @@ classes:
       flattenable:
         owl: "muhai:Flattenable"
         documentation: "The disposition of an object that allows it to be flattened."
+  sprinklable:
+    documentation: "Something that can be sprinkled over something."
+    superclasses:
+      - kitchen-entity
   mixture:
     documentation: "An object that is a mixture of ingredients."
     superclasses:
       - ingredient
       - beatable
+      - cuttable
       - mashable
+      - meltable
       - mixable
       - can-be-sprinkled-with
       - siftable
+      - sprinklable
+      - bakeable
+      - shapeable
       - dippable
       - spreadable
+      - boilable
+      - liquefiable
       - can-be-sprinkled-on
       - can-be-spread-upon
       - has-temperature
       - shakeable
     owl: "muhai:Mixture"
+    properties:
+      components:
+        shared: false
   homogeneous-mixture:
     documentation: "A homogeneous mixture: parts are indistinguishable from each other."
     superclasses:
@@ -650,6 +679,14 @@ classes:
       drainable:
         owl: "muhai:Drainable"
         documentation: "The disposition of an object that allows it to be separated from something else by draining."
+  fryable:
+    documentation: "For objects that can be fried."
+    superclasses:
+      - kitchen-entity
+    dataproperties:
+      fried:
+        range: boolean
+        max: 1
   fluid:
     documentation: "An object that is a fluid."
     superclasses:
@@ -661,10 +698,12 @@ classes:
       - fetchable
       - conceptualizable
       - perishable
+      - can-be-sprinkled-on
     owl: "muhai:Ingredient"
     properties:
       amount:
         owl: "muhai:hasAmount"
+        default: amount
         range: amount
         max: 1
         min: 1
@@ -676,7 +715,7 @@ classes:
     owl: false
     properties:
       items:
-        range: kitchen-entity
+        range: list
         shared: false
   perishable:
     documentation: "An object that is perishable and may need to be refrigerated for storage."
@@ -748,7 +787,6 @@ classes:
     properties:
       lined-with:
         owl: "muhai:isLinedWith"
-        range: can-be-lined-with
         max: 1
         shared: false
     dispositions:
@@ -823,12 +861,12 @@ classes:
     properties:
       plucked:
         owl: "muhai:hasProducedAfterPlucking"
-        range: ingredient
+        range: ingredient null
         max: 1
         shared: false
       pluckee:
         owl: "muhai:hasLeftOverAfterPlucking"
-        range: ingredient
+        range: ingredient null
         max: 1
         shared: false
     dispositions:
@@ -998,6 +1036,14 @@ classes:
     properties:
       arrangement:
         default: shelved # Property inherited from arrangeable, no need to specify more here.
+      temperature:
+        max: 1
+        default:
+          t: amount
+          unit: degrees-celsius
+          quantity:
+            t: quantity
+            value: 5 
   fridge:
     documentation: "A fridge in which various items can be stored at cooler, though not sub-zero, temperatures."
     superclasses:
@@ -1006,6 +1052,14 @@ classes:
     properties:
       arrangement:
         default: shelved # Property inherited from arrangeable, no need to specify more here.
+      temperature:
+        max: 1
+        default:
+          t: amount
+          unit: degrees-celsius
+          quantity:
+            t: quantity
+            value: 5 
   jar:
     documentation: "A (usually glass) jar to store various ingredients in."
     superclasses:
@@ -1084,6 +1138,14 @@ classes:
     properties:
       arrangement:
         default: shelved # Property inherited from arrangeable, no need to specify more here.
+  peel:
+    documentation: "For peels of an object."
+    superclasses:
+      - kitchen-entity
+    properties:
+      peel-of:
+        max: 1
+        shared: false
   rolling-pin:
     documentation: "A rolling pin to roll dough into flat shapes."
     superclasses:
@@ -1151,6 +1213,7 @@ classes:
     superclasses:
       - can-mix
       - reusable
+      - can-mingle
     owl: "muhai:WoodenSpoon"
   conserved-ingredient:
     documentation: "A canned ingredient that consists of a solid part and a liquid that is there to preserve the solid against alteration."
@@ -1186,18 +1249,20 @@ classes:
     documentation: "Almond-related substance, typically used for baking."
     superclasses:
       - ingredient
+      - cuttable
+      - fryable
+      - has-temperature
     owl: "muhai:Almond"
   almond-extract:
     documentation: "Almond extract, used for flavoring and baking."
     superclasses:
-      - almond
       - flavoring-extract
     owl: "muhai:AlmondExtract"
   almond-flakes:
     documentation: "Flakes obtained from coarsely grating almond nuts."
     superclasses:
       - almond
-      - can-be-sprinkled-with
+      - sprinklable
     owl: "muhai:AlmondFlakes"
   almond-flour:
     documentation: "Powder made from finely grinding almond nuts."
@@ -1215,6 +1280,14 @@ classes:
     superclasses:
       - ingredient
     owl: "muhai:BakingSoda"
+  seed:
+    documentation: "For seeds of an object."
+    superclasses:
+      - kitchen-entity
+    properties:
+      seed-of:
+        max: 1
+        shared: false
   avocado:
     documentation: "Avocado."
     superclasses:
@@ -1300,7 +1373,7 @@ classes:
       - meltable
       - has-temperature
       - can-be-brushed-with
-      - can-be-spread-upon
+      - spreadable
       - can-have-on-top
       - aggregate
     owl: "muhai:Butter"
@@ -1334,6 +1407,10 @@ classes:
     documentation: "For objects that can be ground."
     superclasses:
       - kitchen-entity
+    dataproperties:
+      ground:
+        range: boolean
+        max: 1
   walnut:
     documentation: "Walnut."
     superclasses:
@@ -1487,6 +1564,14 @@ classes:
       - ingredient
       - crackable
     owl: "muhai:Eggshell"
+  egg-yolk:
+    documentation: "Egg yolk."
+    superclasses:
+      - ingredient
+      - has-temperature
+    dataproperties:
+      keep-refrigerated:
+        default: true # inherited from ingredient, no need to specify more here 
   flavoring-extract:
     documentation: "Flavoring extract."
     superclasses:
@@ -1539,14 +1624,40 @@ classes:
       - ingredient
       - has-temperature
     owl: "muhai:CreamCheese"
+  syrup:
+    documentation: "Syrup."
+    superclasses:
+      - ingredient
+      - liquid
+  crushed-pineapple:
+    documentation: "Crushed-pineapple."
+    superclasses:
+      - ingredient
   crushed-pineapple-in-syrup:
     documentation: "Crushed-pineapple in sryup."
     superclasses:
       - ingredient
     properties:
       components:
-        range: ingredient
-        shared: false
+        default:
+          - crushed-pineapple:
+              t: crushed-pineapple
+              amount:
+                t: amount
+                quantity:
+                  t: quantity
+                  value: 0.9
+                unit:
+                  t: percent
+          - syrup:
+              t: syrup
+              amount:
+                t: amount
+                quantity:
+                  t: quantity
+                  value: 0.1
+                unit:
+                  t: percent
   egg-white:
     documentation: "Egg white."
     superclasses:
@@ -1661,7 +1772,6 @@ classes:
     superclasses:
       - spice
       - siftable
-      - can-be-sprinkled-with
     owl: "muhai:GroundSpice"
   ground-black-pepper:
     documentation: "Ground black pepper."
@@ -1795,13 +1905,14 @@ classes:
   olive-oil:
     documentation: "Olive oil."
     superclasses:
-      - vegetable-oil
+      - oil
     owl: "muhai:OliveOil"
   onion:
     documentation: "Onion."
     superclasses:
       - ingredient
       - cuttable
+      - peelable
     owl: "muhai:Onion"
   pancetta:
     documentation: "Pancetta."
@@ -1813,7 +1924,7 @@ classes:
     documentation: "Powdered white sugar."
     superclasses:
       - sugar
-      - can-be-sprinkled-with
+      - sprinklable
       - can-be-dipped-in
     owl: "muhai:PowderedWhiteSugar"
   raisin:
@@ -1837,6 +1948,7 @@ classes:
     superclasses:
       - ingredient
       - cuttable
+      - peelable
     owl: "muhai:RedOnion"
   red-pepper-flakes:
     documentation: "Red pepper flakes."
@@ -1900,11 +2012,28 @@ classes:
     documentation: "Celery seed."
     superclasses:
       - spice
+  oil:
+    documentation: "Cooking oil."
+    superclasses:
+      - ingredient
+      - liquid
   coarse-salt:
     documentation: "Coarse salt."
     superclasses:
       - salt
     owl: "muhai:CoarseSalt"
+  shredded:
+    documentation: "A shredded pattern."
+    superclasses:
+      - cutting-pattern
+  finely-chopped:
+    documentation: "A chopped pattern."
+    superclasses:
+      - cutting-pattern
+  fine-slices:
+    documentation: "A finely sliced pattern."
+    superclasses:
+      - cutting-pattern
   cider-vinegar:
     documentation: "Cider vinegar."
     superclasses:
@@ -1930,6 +2059,7 @@ classes:
     documentation: "Spice."
     superclasses:
       - ingredient
+      - boilable
     owl: "muhai:Spice"
   sugar:
     documentation: "Sugar."
@@ -2042,6 +2172,22 @@ classes:
     superclasses:
       - arrangement-pattern
     owl: "muhai:TwoInchesApartArrangement"
+  squares:
+    documentation: "A squares pattern."
+    superclasses:
+      - cutting-pattern
+  two-cm-cubes:
+    documentation: "A pattern for cutting objects into 2 cm cubes "
+    superclasses:
+      - cutting-pattern
+  slices:
+    documentation: "A sliced pattern."
+    superclasses:
+      - cutting-pattern
+  5-cm-apart:
+    documentation: "A pattern in which objects are arranged with a distance of 5 cm."
+    superclasses:
+      - arrangement-pattern
   cutting-pattern:
     documentation: "A pattern in which something can be cut."
     superclasses:
