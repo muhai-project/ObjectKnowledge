@@ -198,10 +198,8 @@ classes:
       - conceptualizable
     owl: "muhai:TransferableContainerObject"
     dataproperties:
-      used:
-        owl: "muhai:isTransferableContainerWithContents"
-        range: boolean
-        max: 1
+      arrangement: 
+        default: false
   microwave:
     documentation: "The microwave. It's a container."
     superclasses:
@@ -232,6 +230,7 @@ classes:
           - oven
           - counter-top
           - microwave
+          - stove
       temperature:
         default:
           t: amount
@@ -311,6 +310,10 @@ classes:
       beatable:
         owl: "muhai:Beatable"
         documentation: "The disposition of an object to allow mixing, in particular mixing that traps in air bubbles and results in a foam-like consistency."
+  uncut:
+    documentation: "An uncut pattern."
+    superclasses:
+      - cutting-pattern
   can-beat:
     documentation: "A tool that can be used for beating ingredients together."
     superclasses:
@@ -586,8 +589,9 @@ classes:
     dataproperties:
       is-cut:
         owl: "muhai:isCut"
-        range: boolean
+        range: cutting-pattern
         max: 1
+        default:  uncut
     dispositions:
       cuttable:
         owl: "muhai:Cuttable"
@@ -1023,10 +1027,11 @@ classes:
   fork:
     documentation: "A fork; can be used for mixing, beating, mashing."
     superclasses:
+      - can-mix
       - can-beat
       - can-mash
-      - can-mix
       - reusable
+      - can-mingle
     owl: "muhai:Fork"
   freezer:
     documentation: "A freezer in which various items can be stored at sub-zero temperatures."
@@ -1184,10 +1189,8 @@ classes:
     documentation: "A stove to cook on."
     superclasses:
       - container
+      - has-temperature
     owl: "muhai:Stove"
-    properties:
-      arrangement:
-        default: side-to-side # Property inherited from arrangeable, no need to specify more here.
   table-spoon:
     documentation: "A table spoon, used for eating liquid or mostly liquid food, but can also be used for other purposes such as spreading jam."
     superclasses:
@@ -1197,8 +1200,9 @@ classes:
   whisk:
     documentation: "A whisk, which is a tool for beating and mixing."
     superclasses:
-      - can-beat
       - can-mix
+      - can-beat
+      - can-mingle
       - reusable
     owl: "muhai:Whisk"
   wire-rack:
@@ -1301,7 +1305,6 @@ classes:
     documentation: "Apple fruit."
     superclasses:
       - ingredient
-      - mashable
       - cuttable
       - seedable
       - peelable
@@ -1341,11 +1344,7 @@ classes:
     superclasses:
       - lentils
     owl: "muhai:BrownLentils"
-  brown-sugar:
-    documentation: "Plain brown sugar."
-    superclasses:
-      - sugar
-    owl: "muhai:BrownSugar"
+
   coconut-oil:
     documentation: "Coconut oil."
     superclasses:
@@ -1380,11 +1379,7 @@ classes:
     dataproperties:
       keep-refrigerated:
         default: true # inherited from ingredient, no need to specify more here
-  caster-sugar:
-    documentation: "Finely granulated sugar."
-    superclasses:
-      - sugar
-    owl: "muhai:CasterSugar"
+
   celery:
     documentation: "Celery."
     superclasses:
@@ -1493,6 +1488,14 @@ classes:
     documentation: "Muffin tins with 12 places for muffins."
     superclasses:
       - muffin-tins
+    dataproperties:
+      number-of-tins:
+        range: quantity
+        max: 1
+        default:
+          - quantity:
+              t: quantity
+              value: 12
   food-processor:
     documentation: "A food processor. It's a tool for mixing, beating and grinding."
     superclasses:
@@ -1754,7 +1757,7 @@ classes:
   turmeric-powder:
     documentation: "Turmeric powder."
     superclasses:
-      - ingredient
+      - spice
   potato:
     documentation: "Potato."
     superclasses:
@@ -1773,6 +1776,11 @@ classes:
       - spice
       - siftable
     owl: "muhai:GroundSpice"
+    dataproperties:
+      ground:
+        range: boolean
+        max: 1
+        default: true
   ground-black-pepper:
     documentation: "Ground black pepper."
     superclasses:
@@ -1812,11 +1820,7 @@ classes:
     superclasses:
       - ingredient
       - beatable
-  icing-sugar:
-    documentation: "Icing sugar."
-    superclasses:
-      - sugar
-    owl: "muhai:IcingSugar"
+
   jalapeno:
     documentation: "Jalapeno pepper."
     superclasses:
@@ -1844,7 +1848,7 @@ classes:
   lime-juice:
     documentation: "Lime juice."
     superclasses:
-      - juice
+      - ingredient
     owl: "muhai:LimeJuice"
   linguine:
     documentation: "Linguine."
@@ -1920,13 +1924,6 @@ classes:
       - ingredient
       - cuttable
     owl: "muhai:Pancetta"
-  powdered-white-sugar:
-    documentation: "Powdered white sugar."
-    superclasses:
-      - sugar
-      - sprinklable
-      - can-be-dipped-in
-    owl: "muhai:PowderedWhiteSugar"
   raisin:
     documentation: "Rain(s)."
     superclasses:
@@ -1942,6 +1939,7 @@ classes:
     documentation: "Red hot chili pepper."
     superclasses:
       - ingredient
+      - cuttable
     owl: "muhai:RedChiliPepper"
   red-onion:
     documentation: "Red onion."
@@ -1977,6 +1975,9 @@ classes:
       - can-be-brushed-with
       - spreadable
       - can-have-on-top
+    dataproperties:
+      keep-refrigerated:
+        default: true
   shredded-coconut:
     documentation: "Shredded coconut."
     superclasses:
@@ -2022,6 +2023,10 @@ classes:
     superclasses:
       - salt
     owl: "muhai:CoarseSalt"
+  cubes:
+    documentation: "A pattern for cutting objects into cubes."
+    superclasses:
+      -  cutting-pattern
   shredded:
     documentation: "A shredded pattern."
     superclasses:
@@ -2046,7 +2051,7 @@ classes:
   semisweet-chocolate-chips:
     documentation: "Semisweet chocolate chips."
     superclasses:
-      - ingredient
+      - chocolate-chips
     owl: "muhai:SemisweetChocolateChips"
   shallot:
     documentation: "Shallot."
@@ -2064,10 +2069,15 @@ classes:
   sugar:
     documentation: "Sugar."
     superclasses:
+      - spice
       - ingredient
       - mixable
-      - beatable
     owl: "muhai:Sugar"
+  brown-sugar:
+    documentation: "Plain brown sugar."
+    superclasses:
+      - sugar
+    owl: "muhai:BrownSugar"
   sweet-potato:
     documentation: "Sweet potato."
     superclasses:
@@ -2075,6 +2085,23 @@ classes:
       - cuttable
       - peelable
     owl: "muhai:SweetPotato"
+  caster-sugar:
+    documentation: "Finely granulated sugar."
+    superclasses:
+      - sugar
+    owl: "muhai:CasterSugar"
+  icing-sugar:
+    documentation: "Icing sugar."
+    superclasses:
+      - sugar
+    owl: "muhai:IcingSugar"
+  powdered-white-sugar:
+    documentation: "Powdered white sugar."
+    superclasses:
+      - sugar
+      - sprinklable
+      - can-be-dipped-in
+    owl: "muhai:PowderedWhiteSugar"
   toast:
     documentation: "Toast."
     superclasses:
@@ -2092,7 +2119,6 @@ classes:
     documentation: "Vanilla extract."
     superclasses:
       - flavoring-extract
-      - vanilla
     owl: "muhai:Vanilla"
   vegetable-oil:
     documentation: "Vegetable oil."
@@ -2104,13 +2130,15 @@ classes:
   vinegar:
     documentation: "Vinegar."
     superclasses:
-      - fluid
+      - ingredient
+      - liquid
     owl: "muhai:Vinegar"
   water:
     documentation: "Water."
     superclasses:
       - fluid
       - has-temperature
+      - liquid
     owl: "muhai:Water"
   white-sugar:
     documentation: "Plain white sugar."
@@ -2366,12 +2394,14 @@ classes:
       - can-seed
       - can-spread
       - can-be-cut-on
+      - can-drain
       - coverable-container
       - fridge
       - kitchen-state
       - lineable
       - list-of-kitchen-entities
       - oven
+      - stove
       - quantity
       - shape
       - sift
