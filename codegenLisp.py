@@ -77,6 +77,19 @@ def _makeInitform(initformYaml, spacing=None):
         spacingWithLine = "\n" + spacing
         props = spacing + spacingWithLine.join([f":{k} {_makeInitform(v, spacing=spacing + ' '*(1 + len(k) + len(' (make-instance ')))}" for k,v in initformYaml.items() if "t" != k])
         initform = f"(make-instance '{eltype}\n{props})"
+
+    elif isinstance(initformYaml, list):
+        initform = ""
+        for el in initformYaml:
+            d = list(el.values())[0] 
+            props = list(d.keys())
+            initform = initform + (f"(make-instance '{d['t']} \n")
+            for idx, p in enumerate(props):
+                if p != "t":
+                    initform = initform + (f":{p} {_makeInitform(d[p], spacing + ' '*(1 + len(p) + len(' (make-instance ')))}")
+            initform = initform + ")"
+
+            
     elif get_number(initformYaml) is not None:
         initform = get_number(initformYaml)
     elif initformYaml is not False:
@@ -102,7 +115,7 @@ def _getSpecification(classSpecs, className, propName, propSpec):
         maximum = maximumSuperclass
     initform = _makeInitform(initformYaml, spacing=" "*(6 + len(":initform (make-instance ")))
     if (1 != maximum) and ("nil" != initform):
-        initform = f"(cons {initform} nil)"
+        initform = f"(list {initform})"
     return (
         reader,
         writer,
@@ -136,6 +149,11 @@ def _makeTypeSpec(typeStr, maximum):
     if "" == typeStr:
         return ""
     retq = ":type "
+    # Optional types with (or ...) are denoted in yaml with spaces
+    if typeStr == "list":
+        return retq + "list"
+    if len(typeStr.split(" ")) > 1:
+        return retq + f"(or {typeStr})"
     if 1 == maximum:
         retq += typeStr
     elif "" == typeStr:
@@ -216,7 +234,7 @@ def copyLispDataPropertyCode(classSpecs, className, propName, propSpec):
     origValues = f"({reader} original)"
     if 1 != maximum:
         origValues = f"(loop for item in {origValues} collect item)"
-    return f"  (setf ({writer} copy) {origValues})\n"
+    return f"  (setf ({writer} copy) (copy-object {origValues}))\n"
 
 
 def generateClassCode(classSpecs, className):
