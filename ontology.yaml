@@ -391,6 +391,7 @@ classes:
       has-on-top:
         owl: "muhai:hasOnTop"
         shared: false
+        max: 1
     dispositions:
       support-other-ingredient:
         owl: "muhai:SupportingIngredientInstrument"
@@ -995,6 +996,27 @@ classes:
       - can-cover
       - reusable
     owl: "muhai:BowlLid"
+  plate:
+    documentation: "A plate. It's a container."
+    superclasses:
+      - transferable-container
+      - reusable
+      - can-cover
+      - lineable
+      - can-have-on-top
+      - can-be-sprinkled-on
+  small-plate:
+    documentation: "A small plate. It's a plate."
+    superclasses:
+      - plate
+  medium-plate:
+    documentation: "A medium plate. It's a plate."
+    superclasses:
+      - plate
+  large-plate:
+    documentation: "A large plate. It's a plate."
+    superclasses:
+      - plate
   brush:
     documentation: "A brush to spread substances by brushing with."
     superclasses:
@@ -1959,6 +1981,7 @@ classes:
       - ingredient
       - cuttable
       - washable
+      - can-be-lined-with
   salt:
     documentation: "Table salt."
     superclasses:
