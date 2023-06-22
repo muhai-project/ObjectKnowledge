@@ -109,6 +109,16 @@ classes:
         range: symbol
         max: 1
         isid: true
+      sim-arguments:
+        range: list
+        max: 1
+      sim-identifier:
+        range: symbol
+        max: 1
+  agent:
+    documentation: "The cook."
+    superclasses:
+      - kitchen-entity
   conceptualizable:
     documentation: "An object that can be used to stand for its class as a whole."
     superclasses:
@@ -239,6 +249,8 @@ classes:
             t: quantity
             value: 18
     dataproperties:
+      constraints:
+        range: list
       kitchen-time:
         range: integer
         default: 0
@@ -1101,6 +1113,10 @@ classes:
       - can-cover
       - reusable
     owl: "muhai:JarLid"
+  kitchen-floor:
+    documentation: "The floor."
+    superclasses: 
+      - kitchen-entity
   kitchen-cabinet:
     documentation: "The kitchen cabinet, where several utensils are stored."
     superclasses:
@@ -1401,7 +1417,10 @@ classes:
     dataproperties:
       keep-refrigerated:
         default: true # inherited from ingredient, no need to specify more here
-
+  butter-particle:
+    documentation: "A particle of butter."
+    superclasses:
+      - butter
   celery:
     documentation: "Celery."
     superclasses:
