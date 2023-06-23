@@ -109,6 +109,16 @@ classes:
         range: symbol
         max: 1
         isid: true
+      simulation-data:
+        range: list
+        max: 1
+      name:
+        range: string
+        max: 1
+  agent:
+    documentation: "The cook."
+    superclasses:
+      - kitchen-entity
   conceptualizable:
     documentation: "An object that can be used to stand for its class as a whole."
     superclasses:
@@ -239,6 +249,8 @@ classes:
             t: quantity
             value: 18
     dataproperties:
+      constraints:
+        range: list
       kitchen-time:
         range: integer
         default: 0
@@ -391,6 +403,7 @@ classes:
       has-on-top:
         owl: "muhai:hasOnTop"
         shared: false
+        max: 1
     dispositions:
       support-other-ingredient:
         owl: "muhai:SupportingIngredientInstrument"
@@ -995,6 +1008,27 @@ classes:
       - can-cover
       - reusable
     owl: "muhai:BowlLid"
+  plate:
+    documentation: "A plate. It's a container."
+    superclasses:
+      - transferable-container
+      - reusable
+      - can-cover
+      - lineable
+      - can-have-on-top
+      - can-be-sprinkled-on
+  small-plate:
+    documentation: "A small plate. It's a plate."
+    superclasses:
+      - plate
+  medium-plate:
+    documentation: "A medium plate. It's a plate."
+    superclasses:
+      - plate
+  large-plate:
+    documentation: "A large plate. It's a plate."
+    superclasses:
+      - plate
   brush:
     documentation: "A brush to spread substances by brushing with."
     superclasses:
@@ -1079,6 +1113,10 @@ classes:
       - can-cover
       - reusable
     owl: "muhai:JarLid"
+  kitchen-floor:
+    documentation: "The floor."
+    superclasses: 
+      - kitchen-entity
   kitchen-cabinet:
     documentation: "The kitchen cabinet, where several utensils are stored."
     superclasses:
@@ -1379,7 +1417,10 @@ classes:
     dataproperties:
       keep-refrigerated:
         default: true # inherited from ingredient, no need to specify more here
-
+  butter-particle:
+    documentation: "A particle of butter."
+    superclasses:
+      - butter
   celery:
     documentation: "Celery."
     superclasses:
@@ -1959,6 +2000,7 @@ classes:
       - ingredient
       - cuttable
       - washable
+      - can-be-lined-with
   salt:
     documentation: "Table salt."
     superclasses:
