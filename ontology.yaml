@@ -109,11 +109,11 @@ classes:
         range: symbol
         max: 1
         isid: true
-      sim-arguments:
+      simulation-data:
         range: list
         max: 1
-      sim-identifier:
-        range: symbol
+      name:
+        range: string
         max: 1
   agent:
     documentation: "The cook."
